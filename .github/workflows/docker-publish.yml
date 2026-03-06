@@ -83,16 +83,17 @@ jobs:
       - name: Run Trivy vulnerability scanner
         uses: aquasecurity/trivy-action@master
         with:
-          image-ref: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.meta.outputs.version }}
+          image-ref: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.meta.outputs.tags != '' && steps.meta.outputs.tags != '[]' && fromJSON(steps.meta.outputs.tags)[0] || 'latest' }}
           format: 'sarif'
-          output: 'trivy-results.sarif'
+          output: '${{ github.workspace }}/trivy-results.sarif'
         if: github.event_name != 'pull_request'
 
       - name: Upload Trivy scan results to GitHub Security tab
-        uses: github/codeql-action/upload-sarif@v3
+        uses: github/codeql-action/upload-sarif@v4
         with:
-          sarif_file: 'trivy-results.sarif'
-        if: always() && github.event_name != 'pull_request'
+          sarif_file: '${{ github.workspace }}/trivy-results.sarif'
+        if: (failure() || success()) && hashFiles('${{ github.workspace }}/trivy-results.sarif') != ''
+        continue-on-error: true
 
       - name: Image digest
         run: echo "Image pushed with digest ${{ steps.build.outputs.digest }}"
