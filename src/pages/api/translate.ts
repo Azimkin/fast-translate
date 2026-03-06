@@ -63,6 +63,7 @@ import {
  * Configured via environment variable or defaults to allow all in development
  */
 const ALLOWED_ORIGINS = process.env.TRANSLATE_ALLOWED_ORIGINS?.split(',') || ['*'];
+const ALLOWED_MODELS = process.env.TRANSLATE_ALLOWED_MODELS?.split(',') || [] // any
 
 /**
  * Generates CORS headers for the response
@@ -184,6 +185,13 @@ function validateTranslateRequest(body: unknown): TranslateValidationResult {
       error: 'modelName must be a non-empty string',
       field: 'modelName'
     };
+  }
+  if (ALLOWED_MODELS.length > 0 && !ALLOWED_MODELS.includes(request.modelName)) {
+    return {
+      isValid: false,
+      error: 'Unknown modelName',
+      field: 'modelName'
+    }
   }
 
   // Validate sourceText

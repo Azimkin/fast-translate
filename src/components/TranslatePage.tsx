@@ -588,7 +588,7 @@ export function TranslatePage() {
             }
             label="Model"
             placeholder="Enter model name (e.g., translategemma:latest)"
-            suggestions={["translategemma:latest", "llama3.2", "mistral-small3.2:latest", "qwen3.5:4b"]}
+            suggestions={["translategemma:latest"]}
             error={errors.model}
             disabled={isSubmitting || !isFormReady}
           />
