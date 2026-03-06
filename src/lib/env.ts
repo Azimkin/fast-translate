@@ -85,3 +85,12 @@ export function validateEnv(): EnvConfig {
  * This is initialized at module load time and will throw if validation fails
  */
 export const env = validateEnv();
+
+/**
+ * Log environment configuration at startup (for debugging)
+ * AUTH_TOKEN is masked for security
+ */
+console.log('[env] Configuration loaded:');
+console.log('[env]   OLLAMA_API_ENDPOINT:', env.ollamaApiEndpoint);
+console.log('[env]   OLLAMA_AUTH_TOKEN:', env.ollamaAuthToken ? '***' + env.ollamaAuthToken.slice(-4) : '(not set)');
+console.log('[env]   SKIP_ENV_VALIDATION:', skipValidation ? 'true' : 'false');
