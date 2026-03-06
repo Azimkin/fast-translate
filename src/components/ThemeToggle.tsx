@@ -11,8 +11,8 @@
  */
 
 import type { JSX } from 'preact';
+import type { KeyboardEvent } from 'preact/compat';
 import { useTheme } from '../hooks/useTheme';
-import type { Theme } from '../types/theme';
 
 interface ThemeToggleProps extends JSX.HTMLAttributes<HTMLButtonElement> {
   /** Optional custom class name */
@@ -136,7 +136,7 @@ export function ThemeToggle({
   };
 
   // Handle keyboard interaction
-  const handleKeyDown = (e: JSX.KeyboardEvent<HTMLButtonElement>) => {
+  const handleKeyDown = (e: KeyboardEvent<HTMLButtonElement>) => {
     if (e.key === 'Enter' || e.key === ' ') {
       e.preventDefault();
       toggleTheme();

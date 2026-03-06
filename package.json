@@ -18,6 +18,8 @@
     "preact": "^10.28.4"
   },
   "devDependencies": {
-    "@types/node": "^25.3.5"
+    "@astrojs/check": "^0.9.6",
+    "@types/node": "^25.3.5",
+    "typescript": "^5.9.3"
   }
 }
