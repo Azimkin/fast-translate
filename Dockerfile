@@ -21,6 +21,10 @@ FROM oven/bun:1 AS build
 
 WORKDIR /app
 
+# Skip environment validation during build
+ENV SKIP_ENV_VALIDATION=true
+ENV OLLAMA_API_ENDPOINT=http://localhost:11434
+
 # Copy dependencies from deps stage
 COPY --from=deps /app/node_modules ./node_modules
 COPY --from=deps /app/package.json ./

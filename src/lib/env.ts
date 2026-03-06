@@ -1,9 +1,8 @@
 /**
  * Environment validation module
- * 
+ *
  * Validates required environment variables at application startup.
- * Throws errors if validation fails to prevent the app from running
- * with invalid configuration.
+ * Supports SKIP_ENV_VALIDATION=true to bypass validation (e.g., during build).
  */
 
 interface EnvConfig {
@@ -14,13 +13,22 @@ interface EnvConfig {
 }
 
 /**
+ * Check if validation should be skipped (e.g., during Docker build)
+ * Set SKIP_ENV_VALIDATION=true to bypass validation
+ */
+const skipValidation = process.env.SKIP_ENV_VALIDATION === 'true';
+
+/**
  * Validates the OLLAMA_API_ENDPOINT environment variable
- * @throws {Error} If OLLAMA_API_ENDPOINT is not set or is empty
+ * Returns default value if SKIP_ENV_VALIDATION=true
  */
 function validateOllamaApiEndpoint(): string {
   const endpoint = process.env.OLLAMA_API_ENDPOINT;
 
   if (!endpoint || endpoint.trim() === '') {
+    if (skipValidation) {
+      return 'http://localhost:11434'; // Default for build time
+    }
     throw new Error(
       'Environment validation failed: OLLAMA_API_ENDPOINT is required but not set. ' +
       'Please set OLLAMA_API_ENDPOINT in your .env file or environment variables.'
@@ -32,8 +40,7 @@ function validateOllamaApiEndpoint(): string {
 
 /**
  * Validates the OLLAMA_AUTH_TOKEN environment variable if provided
- * @returns The token if set, null if not provided
- * @throws {Error} If OLLAMA_AUTH_TOKEN is set but empty (whitespace only)
+ * Returns null silently if SKIP_ENV_VALIDATION=true
  */
 function validateOllamaAuthToken(): string | null {
   const token = process.env.OLLAMA_AUTH_TOKEN;
@@ -45,8 +52,11 @@ function validateOllamaAuthToken(): string | null {
 
   const trimmedToken = token.trim();
 
-  // If token is provided but empty/whitespace, that's a configuration error
+  // If token is provided but empty/whitespace
   if (trimmedToken === '') {
+    if (skipValidation) {
+      return null; // Skip validation during build
+    }
     throw new Error(
       'Environment validation failed: OLLAMA_AUTH_TOKEN is set but empty. ' +
       'Please either provide a valid token or remove the variable from your .env file.'
