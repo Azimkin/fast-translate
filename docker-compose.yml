@@ -1,0 +1,36 @@
+# Docker Compose for Fast Translate
+# Usage: docker compose up -d
+
+services:
+  fast-translate:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: fast-translate
+    restart: unless-stopped
+    ports:
+      - "4321:4321"
+    environment:
+      # Required: Ollama API endpoint
+      - OLLAMA_API_ENDPOINT=http://host.docker.internal:11434
+      # Optional: Ollama authentication token
+      - OLLAMA_AUTH_TOKEN=
+      # Optional: Port for the server (default: 4321)
+      - PORT=4321
+      # Optional: Allowed origins for CORS (comma-separated)
+      - TRANSLATE_ALLOWED_ORIGINS=*
+    extra_hosts:
+      # Allow container to access host machine (for Ollama)
+      - "host.docker.internal:host-gateway"
+    healthcheck:
+      test: ["CMD", "bun", "-e", "fetch('http://localhost:4321/api/health').then(r => { if (!r.ok) process.exit(1); }).catch(() => process.exit(1))"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    networks:
+      - fast-translate-network
+
+networks:
+  fast-translate-network:
+    driver: bridge

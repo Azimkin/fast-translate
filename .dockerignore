@@ -1,0 +1,47 @@
+# Dependencies
+node_modules/
+bun.lock
+
+# Build output
+dist/
+
+# Environment files
+.env
+.env.local
+.env.production
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Test files
+*.test.ts
+*.spec.ts
+tests/
+
+# Documentation
+README.md
+QWEN.md
+*.md
+
+# Git
+.git/
+.gitignore
+
+# Docker (optional - include if you want to build inside container)
+# Dockerfile
+# .dockerignore
