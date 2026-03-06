@@ -40,6 +40,8 @@ jobs:
         run: bun run test:csrf || true
 
       - name: Build application
+        env:
+          OLLAMA_API_ENDPOINT: http://localhost:11434
         run: bun run build
 
       - name: Set up Docker Buildx
