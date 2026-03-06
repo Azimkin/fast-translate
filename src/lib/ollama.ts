@@ -60,23 +60,233 @@ function buildHeaders(config: OllamaClientConfig): Record<string, string> {
 }
 
 /**
+ * Maps language codes to their full names
+ * Supports both ISO 639-1 (2-letter) and ISO 639-2/3 (3-letter) codes
+ * @param code - Language code (e.g., 'en', 'eng', 'es', 'spa')
+ * @returns Full language name (e.g., 'English', 'Spanish')
+ */
+function getLanguageNameFromCode(code: string): string {
+  // Normalize code to lowercase
+  const normalizedCode = code.toLowerCase().trim();
+
+  // Comprehensive mapping of ISO 639-1 and ISO 639-2/3 codes to language names
+  const languageCodeMap: Record<string, string> = {
+    // Major languages (ISO 639-1)
+    'en': 'English',
+    'es': 'Spanish',
+    'fr': 'French',
+    'de': 'German',
+    'it': 'Italian',
+    'pt': 'Portuguese',
+    'ru': 'Russian',
+    'zh': 'Chinese',
+    'ja': 'Japanese',
+    'ko': 'Korean',
+    'ar': 'Arabic',
+    'hi': 'Hindi',
+    'bn': 'Bengali',
+    'pa': 'Punjabi',
+    'jv': 'Javanese',
+    'te': 'Telugu',
+    'mr': 'Marathi',
+    'ta': 'Tamil',
+    'tr': 'Turkish',
+    'vi': 'Vietnamese',
+    'pl': 'Polish',
+    'uk': 'Ukrainian',
+    'nl': 'Dutch',
+    'th': 'Thai',
+    'id': 'Indonesian',
+    'ms': 'Malay',
+    'ro': 'Romanian',
+    'el': 'Greek',
+    'cs': 'Czech',
+    'sv': 'Swedish',
+    'hu': 'Hungarian',
+    'he': 'Hebrew',
+    'fi': 'Finnish',
+    'no': 'Norwegian',
+    'da': 'Danish',
+    'sk': 'Slovak',
+    'bg': 'Bulgarian',
+    'hr': 'Croatian',
+    'sr': 'Serbian',
+    'lt': 'Lithuanian',
+    'sl': 'Slovenian',
+    'lv': 'Latvian',
+    'et': 'Estonian',
+
+    // ISO 639-2/3 codes (3-letter)
+    'eng': 'English',
+    'spa': 'Spanish',
+    'fra': 'French',
+    'deu': 'German',
+    'ita': 'Italian',
+    'por': 'Portuguese',
+    'rus': 'Russian',
+    'zho': 'Chinese',
+    'jpn': 'Japanese',
+    'kor': 'Korean',
+    'ara': 'Arabic',
+    'hin': 'Hindi',
+    'ben': 'Bengali',
+    'pan': 'Punjabi',
+    'jav': 'Javanese',
+    'tel': 'Telugu',
+    'mar': 'Marathi',
+    'tam': 'Tamil',
+    'tur': 'Turkish',
+    'vie': 'Vietnamese',
+    'pol': 'Polish',
+    'ukr': 'Ukrainian',
+    'nld': 'Dutch',
+    'tha': 'Thai',
+    'ind': 'Indonesian',
+    'msa': 'Malay',
+    'ron': 'Romanian',
+    'ell': 'Greek',
+    'ces': 'Czech',
+    'swe': 'Swedish',
+    'hun': 'Hungarian',
+    'heb': 'Hebrew',
+    'fin': 'Finnish',
+    'nor': 'Norwegian',
+    'dan': 'Danish',
+    'slk': 'Slovak',
+    'bul': 'Bulgarian',
+    'hrv': 'Croatian',
+    'srp': 'Serbian',
+    'lit': 'Lithuanian',
+    'slv': 'Slovenian',
+    'lav': 'Latvian',
+    'est': 'Estonian',
+
+    // Additional languages
+    'ca': 'Catalan',
+    'gl': 'Galician',
+    'eu': 'Basque',
+    'af': 'Afrikaans',
+    'sw': 'Swahili',
+    'ur': 'Urdu',
+    'ne': 'Nepali',
+    'si': 'Sinhala',
+    'km': 'Khmer',
+    'lo': 'Lao',
+    'my': 'Burmese',
+    'kn': 'Kannada',
+    'ml': 'Malayalam',
+    'guj': 'Gujarati',
+    'or': 'Odia',
+    'am': 'Amharic',
+    'ha': 'Hausa',
+    'yo': 'Yoruba',
+    'ig': 'Igbo',
+    'zu': 'Zulu',
+    'xh': 'Xhosa',
+    'st': 'Sotho',
+    'tn': 'Tswana',
+    'ssw': 'Swazi',
+    'ven': 'Venda',
+    'nso': 'Northern Sotho',
+    'nde': 'Ndebele',
+    'ny': 'Chichewa',
+    'sn': 'Shona',
+    'to': 'Tongan',
+    'fj': 'Fijian',
+    'sm': 'Samoan',
+    'haw': 'Hawaiian',
+    'mi': 'Maori',
+    'fil': 'Filipino',
+    'tl': 'Tagalog',
+    'fa': 'Persian',
+    'ps': 'Pashto',
+    'ku': 'Kurdish',
+    'az': 'Azerbaijani',
+    'ka': 'Georgian',
+    'hy': 'Armenian',
+    'be': 'Belarusian',
+    'kk': 'Kazakh',
+    'uz': 'Uzbek',
+    'tg': 'Tajik',
+    'mn': 'Mongolian',
+    'bo': 'Tibetan',
+    'dz': 'Dzongkha',
+    'is': 'Icelandic',
+    'fo': 'Faroese',
+    'ga': 'Irish',
+    'gd': 'Scottish Gaelic',
+    'cy': 'Welsh',
+    'br': 'Breton',
+    'mt': 'Maltese',
+    'sq': 'Albanian',
+    'mk': 'Macedonian',
+    'bs': 'Bosnian',
+    'me': 'Montenegrin',
+    'lb': 'Luxembourgish',
+    'rm': 'Romansh',
+    'fur': 'Friulian',
+    'sc': 'Sardinian',
+    'co': 'Corsican',
+    'eo': 'Esperanto',
+    'ia': 'Interlingua',
+    'ie': 'Interlingue',
+    'vo': 'Volapük',
+    'io': 'Ido',
+    'jbo': 'Lojban',
+    'la': 'Latin',
+    'grc': 'Ancient Greek',
+    'got': 'Gothic',
+    'cu': 'Old Church Slavonic',
+    'non': 'Old Norse',
+    'ang': 'Old English',
+    'enm': 'Middle English',
+    'frm': 'Middle French',
+    'dum': 'Middle Dutch',
+    'goh': 'Old High German',
+    'gmh': 'Middle High German',
+    'osp': 'Old Spanish',
+    'roa-opt': 'Old Portuguese',
+    'itc-ola': 'Old Latin',
+  };
+
+  // Try direct lookup first
+  if (languageCodeMap[normalizedCode]) {
+    return languageCodeMap[normalizedCode];
+  }
+
+  // If not found, return the code itself (will be used as-is)
+  // Capitalize first letter for better appearance
+  return normalizedCode.charAt(0).toUpperCase() + normalizedCode.slice(1);
+}
+
+/**
  * Builds a translation prompt for the Ollama model
  * @param sourceText - Text to translate
- * @param sourceLang - Source language code or name
- * @param targetLang - Target language code or name
- * @returns Formatted translation prompt
+ * @param sourceLang - Source language code (e.g., 'en', 'es') or name
+ * @param targetLang - Target language code (e.g., 'en', 'es') or name
+ * @returns Formatted translation prompt with full language names
+ *
+ * @example
+ * ```typescript
+ * const prompt = buildTranslationPrompt('Hello', 'en', 'es');
+ * // Returns prompt with "English (en) to Spanish (es)"
+ * ```
  */
 export function buildTranslationPrompt(
   sourceText: string,
   sourceLang: string,
   targetLang: string,
 ): string {
-  return `You are a professional translator. Translate the following text from ${sourceLang} to ${targetLang}.
-Only provide the translation, no explanations.
+  // Get full language names from codes
+  const sourceLangName = getLanguageNameFromCode(sourceLang);
+  const targetLangName = getLanguageNameFromCode(targetLang);
 
-Text: ${sourceText}
+  return `You are a professional ${sourceLangName} (${sourceLang}) to ${targetLangName} (${targetLang}) translator. Your goal is to accurately convey the meaning and nuances of the original ${sourceLangName} text while adhering to ${targetLangName} grammar, vocabulary, and cultural sensitivities.
+Produce only the ${targetLangName} translation, without any additional explanations or commentary.
 
-Translation:`;
+Translate the following ${sourceLangName} text into ${targetLangName}:
+
+${sourceText}`;
 }
 
 /**
