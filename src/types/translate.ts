@@ -6,7 +6,10 @@
 
 /**
  * Request body for the translation endpoint
- * All fields are required for a valid translation request
+ * 
+ * Note: csrfToken is optional because it can be provided either:
+ * - In the request body (this interface)
+ * - In the X-CSRF-Token header (preferred method)
  */
 export interface TranslateRequest {
   /** Name of the Ollama model to use for translation (e.g., 'llama2', 'mistral') */
@@ -17,8 +20,8 @@ export interface TranslateRequest {
   sourceLang: string;
   /** Target language name or code (e.g., 'Spanish', 'es') */
   targetLang: string;
-  /** CSRF token for request validation */
-  csrfToken: string;
+  /** CSRF token for request validation (optional if provided in X-CSRF-Token header) */
+  csrfToken?: string;
 }
 
 /**

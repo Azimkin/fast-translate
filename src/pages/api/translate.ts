@@ -248,20 +248,17 @@ function validateTranslateRequest(body: unknown): TranslateValidationResult {
     };
   }
 
-  // Validate csrfToken
-  if (!('csrfToken' in request)) {
-    return {
-      isValid: false,
-      error: 'csrfToken is required',
-      field: 'csrfToken'
-    };
-  }
-  if (typeof request.csrfToken !== 'string' || request.csrfToken.trim() === '') {
-    return {
-      isValid: false,
-      error: 'csrfToken must be a non-empty string',
-      field: 'csrfToken'
-    };
+  // Validate csrfToken (optional - can be provided in header or body)
+  let csrfToken: string | undefined;
+  if ('csrfToken' in request) {
+    if (typeof request.csrfToken !== 'string' || request.csrfToken.trim() === '') {
+      return {
+        isValid: false,
+        error: 'csrfToken must be a non-empty string',
+        field: 'csrfToken'
+      };
+    }
+    csrfToken = request.csrfToken;
   }
 
   // All validations passed
@@ -272,7 +269,7 @@ function validateTranslateRequest(body: unknown): TranslateValidationResult {
       sourceText: request.sourceText,
       sourceLang: request.sourceLang.trim(),
       targetLang: request.targetLang.trim(),
-      csrfToken: request.csrfToken
+      csrfToken
     }
   };
 }
@@ -282,7 +279,7 @@ function validateTranslateRequest(body: unknown): TranslateValidationResult {
  * Checks both header and body for the token
  *
  * @param request - The incoming request
- * @param bodyToken - Token from request body (if already parsed)
+ * @param bodyToken - Token from request body (if provided)
  * @returns Validation result
  */
 function validateCsrfToken(request: Request, bodyToken?: string): { isValid: boolean; error?: string } {
@@ -306,7 +303,7 @@ function validateCsrfToken(request: Request, bodyToken?: string): { isValid: boo
     return { isValid: true };
   }
 
-  // No token found
+  // No token found in either header or body
   return { isValid: false, error: 'CSRF token is missing. Include token in X-CSRF-Token header or request body.' };
 }
 
@@ -384,8 +381,6 @@ export const POST: APIRoute = async ({ request }) => {
   const { modelName, sourceText, sourceLang, targetLang } = validation.data!;
 
   try {
-    console.log('[Translate] Translating with model:', modelName, 'from:', sourceLang, 'to:', targetLang);
-
     const result = await translateWithOllama({
       text: sourceText,
       sourceLang,

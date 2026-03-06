@@ -14,19 +14,22 @@
  * - Accessible form with proper labels and error messages
  */
 
-import type { JSX } from 'preact';
-import { useState, useEffect, useCallback, useRef } from 'preact/hooks';
-import { useTheme } from '../hooks/useTheme';
-import { ThemeToggle } from './ThemeToggle';
-import { ModelSelector } from './ModelSelector';
-import { LanguageSelector } from './LanguageSelector';
-import { TextArea } from './TextArea';
-import { TranslationResult } from './TranslationResult';
-import { NotificationContainer } from './NotificationContainer';
-import { showSuccess, showError } from '../lib/notification-store';
-import { getLanguages } from '../lib/languages';
-import type { Language } from '../types/language';
-import type { TranslateSuccessResponse, TranslateErrorResponse } from '../types/translate';
+import type { JSX } from "preact";
+import { useState, useEffect, useCallback, useRef } from "preact/hooks";
+import { useTheme } from "../hooks/useTheme";
+import { ThemeToggle } from "./ThemeToggle";
+import { ModelSelector } from "./ModelSelector";
+import { LanguageSelector } from "./LanguageSelector";
+import { TextArea } from "./TextArea";
+import { TranslationResult } from "./TranslationResult";
+import { NotificationContainer } from "./NotificationContainer";
+import { showSuccess, showError } from "../lib/notification-store";
+import { getLanguages } from "../lib/languages";
+import type { Language } from "../types/language";
+import type {
+  TranslateSuccessResponse,
+  TranslateErrorResponse,
+} from "../types/translate";
 
 /**
  * Form state interface
@@ -82,21 +85,26 @@ export function TranslatePage() {
 
   // State: Form
   const [formState, setFormState] = useState<TranslateFormState>({
-    model: 'llama2',
-    sourceLang: 'en',
-    targetLang: 'es',
-    sourceText: '',
+    model: "translategemma:latest",
+    sourceLang: "en",
+    targetLang: "es",
+    sourceText: "",
   });
 
   // State: UI
   const [errors, setErrors] = useState<FormErrors>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [csrfToken, setCsrfToken] = useState<string | null>(null);
+  const [isLoadingCsrf, setIsLoadingCsrf] = useState(true);
   const [translationResult, setTranslationResult] =
     useState<TranslationResultData | null>(null);
 
   // Refs
   const submitButtonRef = useRef<HTMLButtonElement>(null);
+
+  // Computed: Form is ready (both languages and CSRF loaded)
+  const isFormReady =
+    !isLoadingLanguages && !isLoadingCsrf && csrfToken !== null;
 
   // Fetch languages on mount
   useEffect(() => {
@@ -108,9 +116,9 @@ export function TranslatePage() {
 
         // Set default languages if available
         if (langs.length > 0) {
-          const defaultSource = langs.find((l) => l.code === 'en') || langs[0];
+          const defaultSource = langs.find((l) => l.code === "en") || langs[0];
           const defaultTarget =
-            langs.find((l) => l.code === 'es') ||
+            langs.find((l) => l.code === "es") ||
             langs.find((l) => l.code !== defaultSource.code) ||
             langs[1] ||
             langs[0];
@@ -122,8 +130,8 @@ export function TranslatePage() {
           }));
         }
       } catch (error) {
-        console.error('Failed to load languages:', error);
-        showError('Failed to load languages', 'Using default language list');
+        console.error("Failed to load languages:", error);
+        showError("Failed to load languages", "Using default language list");
       } finally {
         setIsLoadingLanguages(false);
       }
@@ -136,10 +144,11 @@ export function TranslatePage() {
   useEffect(() => {
     async function fetchCsrfToken() {
       try {
-        const response = await fetch('/api/csrf-token', {
-          method: 'GET',
+        console.log("[TranslatePage] Fetching CSRF token...");
+        const response = await fetch("/api/csrf-token", {
+          method: "GET",
           headers: {
-            'Accept': 'application/json',
+            Accept: "application/json",
           },
         });
 
@@ -149,9 +158,14 @@ export function TranslatePage() {
 
         const data = await response.json();
         setCsrfToken(data.token);
+        console.log("[TranslatePage] CSRF token loaded successfully");
       } catch (error) {
-        console.error('Failed to fetch CSRF token:', error);
-        showError('Failed to initialize form', 'Please refresh the page');
+        console.error("Failed to fetch CSRF token:", error);
+        showError("Failed to initialize form", "Please refresh the page");
+        // Set to false to indicate loading failed
+        setIsLoadingCsrf(false);
+      } finally {
+        setIsLoadingCsrf(false);
       }
     }
 
@@ -166,7 +180,7 @@ export function TranslatePage() {
       const lang = languages.find((l) => l.code === code);
       return lang ? lang.name : code;
     },
-    [languages]
+    [languages],
   );
 
   /**
@@ -176,32 +190,32 @@ export function TranslatePage() {
     const newErrors: FormErrors = {};
 
     // Validate model
-    if (!formState.model || formState.model.trim() === '') {
-      newErrors.model = 'Model name is required';
+    if (!formState.model || formState.model.trim() === "") {
+      newErrors.model = "Model name is required";
     }
 
     // Validate source language
     if (!formState.sourceLang) {
-      newErrors.sourceLang = 'Source language is required';
+      newErrors.sourceLang = "Source language is required";
     }
 
     // Validate target language
     if (!formState.targetLang) {
-      newErrors.targetLang = 'Target language is required';
+      newErrors.targetLang = "Target language is required";
     }
 
     // Validate source and target are different
     if (formState.sourceLang === formState.targetLang) {
-      newErrors.targetLang = 'Target language must be different from source';
+      newErrors.targetLang = "Target language must be different from source";
     }
 
     // Validate source text
-    if (!formState.sourceText || formState.sourceText.trim() === '') {
-      newErrors.sourceText = 'Please enter text to translate';
+    if (!formState.sourceText || formState.sourceText.trim() === "") {
+      newErrors.sourceText = "Please enter text to translate";
     } else if (formState.sourceText.length > 10000) {
-      newErrors.sourceText = 'Text exceeds maximum length of 10,000 characters';
+      newErrors.sourceText = "Text exceeds maximum length of 10,000 characters";
     } else if (formState.sourceText.trim().length < 1) {
-      newErrors.sourceText = 'Please enter at least one character';
+      newErrors.sourceText = "Please enter at least one character";
     }
 
     setErrors(newErrors);
@@ -215,18 +229,45 @@ export function TranslatePage() {
     async (e: Event) => {
       e.preventDefault();
 
+      // Debug logging
+      console.log("[TranslatePage] handleSubmit called");
+      console.log("[TranslatePage] Form state:", formState);
+      console.log(
+        "[TranslatePage] CSRF token:",
+        csrfToken ? "Present" : "Missing",
+      );
+      console.log("[TranslatePage] isFormReady:", isFormReady);
+      console.log("[TranslatePage] isSubmitting:", isSubmitting);
+
+      // Check if form is ready (CSRF + languages loaded)
+      if (!isFormReady) {
+        console.warn("[TranslatePage] Form not ready, blocking submission");
+        showError(
+          "Form not ready",
+          "Please wait for the form to initialize...",
+        );
+        return;
+      }
+
       // Validate form
+      console.log("[TranslatePage] Validating form...");
       if (!validateForm()) {
-        showError('Please fix the form errors', 'Some fields need your attention');
+        console.warn("[TranslatePage] Form validation failed", errors);
+        showError(
+          "Please fix the form errors",
+          "Some fields need your attention",
+        );
         return;
       }
 
-      // Check CSRF token
+      // Check CSRF token (double-check)
       if (!csrfToken) {
-        showError('Form not ready', 'Please wait for the form to initialize');
+        console.error("[TranslatePage] CSRF token is null at submission time");
+        showError("Form not ready", "Please wait for the form to initialize");
         return;
       }
 
+      console.log("[TranslatePage] Form validation passed, submitting...");
       setIsSubmitting(true);
       setTranslationResult(null);
       setErrors({});
@@ -241,15 +282,25 @@ export function TranslatePage() {
           csrfToken: csrfToken,
         };
 
+        console.log("[TranslatePage] Sending translation request:", {
+          ...requestBody,
+          csrfToken: "[REDACTED]",
+        });
+
         // Submit translation request
-        const response = await fetch('/api/translate', {
-          method: 'POST',
+        const response = await fetch("/api/translate", {
+          method: "POST",
           headers: {
-            'Content-Type': 'application/json',
-            'Accept': 'application/json',
+            "Content-Type": "application/json",
+            Accept: "application/json",
           },
           body: JSON.stringify(requestBody),
         });
+
+        console.log(
+          "[TranslatePage] Translation response status:",
+          response.status,
+        );
 
         const data = (await response.json()) as
           | TranslateSuccessResponse
@@ -258,30 +309,38 @@ export function TranslatePage() {
         if (!response.ok || !data.success) {
           // Handle error response
           const errorMessage =
-            'message' in data ? data.message : 'Translation failed';
-          const errorCode = 'error' in data ? data.error : 'UNKNOWN_ERROR';
+            "message" in data ? data.message : "Translation failed";
+          const errorCode = "error" in data ? data.error : "UNKNOWN_ERROR";
 
-          console.error('Translation error:', errorCode, errorMessage);
-          showError('Translation failed', errorMessage);
+          console.error(
+            "[TranslatePage] Translation error:",
+            errorCode,
+            errorMessage,
+          );
+          showError("Translation failed", errorMessage);
 
           // Handle CSRF token expiration
-          if (errorCode === 'CSRF_INVALID' || errorCode === 'CSRF_MISSING') {
+          if (errorCode === "CSRF_INVALID" || errorCode === "CSRF_MISSING") {
             // Try to fetch a new CSRF token
             try {
-              const tokenResponse = await fetch('/api/csrf-token', {
-                method: 'GET',
+              const tokenResponse = await fetch("/api/csrf-token", {
+                method: "GET",
                 headers: {
-                  'Accept': 'application/json',
+                  Accept: "application/json",
                 },
               });
 
               if (tokenResponse.ok) {
                 const tokenData = await tokenResponse.json();
                 setCsrfToken(tokenData.token);
-                showError('Session expired', 'Please try submitting again');
+                console.log("[TranslatePage] CSRF token refreshed");
+                showError("Session expired", "Please try submitting again");
               }
             } catch (tokenError) {
-              console.error('Failed to refresh CSRF token:', tokenError);
+              console.error(
+                "[TranslatePage] Failed to refresh CSRF token:",
+                tokenError,
+              );
             }
           }
 
@@ -290,6 +349,10 @@ export function TranslatePage() {
 
         // Handle success
         const successData = data as TranslateSuccessResponse;
+        console.log(
+          "[TranslatePage] Translation successful:",
+          successData.data,
+        );
         setTranslationResult({
           translatedText: successData.data.translatedText,
           model: successData.data.model,
@@ -297,18 +360,24 @@ export function TranslatePage() {
           targetLang: successData.data.targetLang,
         });
 
-        showSuccess('Translation complete', 'Your text has been translated successfully');
+        showSuccess(
+          "Translation complete",
+          "Your text has been translated successfully",
+        );
       } catch (error) {
         // Handle network errors
         const errorMessage =
-          error instanceof Error ? error.message : 'Unknown error occurred';
-        console.error('Translation request failed:', error);
-        showError('Network error', 'Failed to connect to the translation service');
+          error instanceof Error ? error.message : "Unknown error occurred";
+        console.error("[TranslatePage] Translation request failed:", error);
+        showError(
+          "Network error",
+          "Failed to connect to the translation service",
+        );
       } finally {
         setIsSubmitting(false);
       }
     },
-    [formState, csrfToken, validateForm, getLanguageName]
+    [formState, csrfToken, validateForm, getLanguageName, isFormReady],
   );
 
   /**
@@ -317,7 +386,7 @@ export function TranslatePage() {
   const handleClear = useCallback(() => {
     setFormState((prev) => ({
       ...prev,
-      sourceText: '',
+      sourceText: "",
     }));
     setTranslationResult(null);
     setErrors({});
@@ -340,145 +409,148 @@ export function TranslatePage() {
             sourceLang: prev.targetLang,
             targetLang: prev.sourceLang,
           }
-        : null
+        : null,
     );
   }, []);
 
   // Styles
   const pageContainerStyles: JSX.CSSProperties = {
-    minHeight: '100vh',
-    display: 'flex',
-    flexDirection: 'column',
-    backgroundColor: 'var(--bg-primary)',
-    transition: 'background-color 250ms cubic-bezier(0.4, 0, 0.2, 1)',
+    minHeight: "100vh",
+    display: "flex",
+    flexDirection: "column",
+    backgroundColor: "var(--bg-primary)",
+    transition: "background-color 250ms cubic-bezier(0.4, 0, 0.2, 1)",
   };
 
   const headerStyles: JSX.CSSProperties = {
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: '1rem',
-    borderBottom: '1px solid var(--border-primary)',
-    backgroundColor: 'var(--bg-primary)',
-    position: 'sticky',
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
+    padding: "1rem",
+    borderBottom: "1px solid var(--border-primary)",
+    backgroundColor: "var(--bg-primary)",
+    position: "sticky",
     top: 0,
     zIndex: 50,
   };
 
   const logoStyles: JSX.CSSProperties = {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '0.5rem',
+    display: "flex",
+    alignItems: "center",
+    gap: "0.5rem",
   };
 
   const logoTextStyles: JSX.CSSProperties = {
-    fontSize: '1.25rem',
+    fontSize: "1.25rem",
     fontWeight: 700,
-    color: 'var(--text-primary)',
+    color: "var(--text-primary)",
   };
 
   const mainStyles: JSX.CSSProperties = {
     flex: 1,
-    display: 'flex',
-    flexDirection: 'column',
-    padding: '1.5rem 1rem',
-    maxWidth: '800px',
-    width: '100%',
-    margin: '0 auto',
+    display: "flex",
+    flexDirection: "column",
+    padding: "1.5rem 1rem",
+    maxWidth: "800px",
+    width: "100%",
+    margin: "0 auto",
   };
 
   const titleStyles: JSX.CSSProperties = {
-    fontSize: '1.75rem',
+    fontSize: "1.75rem",
     fontWeight: 700,
-    color: 'var(--text-primary)',
-    marginBottom: '0.25rem',
-    textAlign: 'center',
+    color: "var(--text-primary)",
+    marginBottom: "0.25rem",
+    textAlign: "center",
   };
 
   const subtitleStyles: JSX.CSSProperties = {
-    fontSize: '0.875rem',
-    color: 'var(--text-secondary)',
-    marginBottom: '1.5rem',
-    textAlign: 'center',
+    fontSize: "0.875rem",
+    color: "var(--text-secondary)",
+    marginBottom: "1.5rem",
+    textAlign: "center",
   };
 
   const formStyles: JSX.CSSProperties = {
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '1.25rem',
-    width: '100%',
+    display: "flex",
+    flexDirection: "column",
+    gap: "1.25rem",
+    width: "100%",
   };
 
   const languageRowStyles: JSX.CSSProperties = {
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '0.75rem',
+    display: "flex",
+    flexDirection: "column",
+    gap: "0.75rem",
   };
 
   const swapButtonStyles: JSX.CSSProperties = {
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    width: '40px',
-    height: '40px',
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    width: "40px",
+    height: "40px",
     padding: 0,
-    backgroundColor: 'var(--bg-secondary)',
-    border: '1px solid var(--border-primary)',
-    borderRadius: '50%',
-    color: 'var(--text-secondary)',
-    cursor: 'pointer',
-    transition: 'all 150ms cubic-bezier(0.4, 0, 0.2, 1)',
-    alignSelf: 'center',
-    margin: '-0.5rem 0',
+    backgroundColor: "var(--bg-secondary)",
+    border: "1px solid var(--border-primary)",
+    borderRadius: "50%",
+    color: "var(--text-secondary)",
+    cursor: "pointer",
+    transition: "all 150ms cubic-bezier(0.4, 0, 0.2, 1)",
+    alignSelf: "center",
+    margin: "-0.5rem 0",
   };
 
   const buttonGroupStyles: JSX.CSSProperties = {
-    display: 'flex',
-    gap: '0.75rem',
-    marginTop: '0.5rem',
+    display: "flex",
+    gap: "0.75rem",
+    marginTop: "0.5rem",
   };
 
   const submitButtonStyles: JSX.CSSProperties = {
     flex: 1,
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: '0.5rem',
-    padding: '0.875rem 1.5rem',
-    fontSize: '0.9375rem',
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: "0.5rem",
+    padding: "0.875rem 1.5rem",
+    fontSize: "0.9375rem",
     fontWeight: 600,
-    color: 'var(--text-inverse)',
-    backgroundColor: isSubmitting ? 'var(--accent-active)' : 'var(--accent-primary)',
-    border: 'none',
-    borderRadius: '0.5rem',
-    cursor: isSubmitting ? 'not-allowed' : 'pointer',
-    transition: 'all 150ms cubic-bezier(0.4, 0, 0.2, 1)',
-    opacity: isSubmitting ? 0.7 : 1,
+    color: "var(--text-inverse)",
+    backgroundColor:
+      isSubmitting || !isFormReady
+        ? "var(--accent-active)"
+        : "var(--accent-primary)",
+    border: "none",
+    borderRadius: "0.5rem",
+    cursor: isSubmitting || !isFormReady ? "not-allowed" : "pointer",
+    transition: "all 150ms cubic-bezier(0.4, 0, 0.2, 1)",
+    opacity: isSubmitting || !isFormReady ? 0.7 : 1,
   };
 
   const clearButtonStyles: JSX.CSSProperties = {
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: '0.5rem',
-    padding: '0.875rem 1.5rem',
-    fontSize: '0.9375rem',
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: "0.5rem",
+    padding: "0.875rem 1.5rem",
+    fontSize: "0.9375rem",
     fontWeight: 500,
-    color: 'var(--text-secondary)',
-    backgroundColor: 'var(--bg-secondary)',
-    border: '1px solid var(--border-primary)',
-    borderRadius: '0.5rem',
-    cursor: 'pointer',
-    transition: 'all 150ms cubic-bezier(0.4, 0, 0.2, 1)',
+    color: "var(--text-secondary)",
+    backgroundColor: "var(--bg-secondary)",
+    border: "1px solid var(--border-primary)",
+    borderRadius: "0.5rem",
+    cursor: "pointer",
+    transition: "all 150ms cubic-bezier(0.4, 0, 0.2, 1)",
   };
 
   const spinnerStyles: JSX.CSSProperties = {
-    width: '20px',
-    height: '20px',
-    border: '2px solid rgba(255, 255, 255, 0.3)',
-    borderTopColor: 'white',
-    borderRadius: '50%',
-    animation: 'spin 0.8s linear infinite',
+    width: "20px",
+    height: "20px",
+    border: "2px solid rgba(255, 255, 255, 0.3)",
+    borderTopColor: "white",
+    borderRadius: "50%",
+    animation: "spin 0.8s linear infinite",
   };
 
   // Get source and target language names for display
@@ -515,9 +587,10 @@ export function TranslatePage() {
               setFormState((prev) => ({ ...prev, model: value }))
             }
             label="Model"
-            placeholder="Enter model name (e.g., llama2, mistral)"
+            placeholder="Enter model name (e.g., translategemma:latest)"
+            suggestions={["translategemma:latest", "llama3.2", "mistral-small3.2:latest", "qwen3.5:4b"]}
             error={errors.model}
-            disabled={isSubmitting || isLoadingLanguages}
+            disabled={isSubmitting || !isFormReady}
           />
 
           {/* Language selectors */}
@@ -530,7 +603,7 @@ export function TranslatePage() {
               label="From"
               languages={languages}
               error={errors.sourceLang}
-              disabled={isSubmitting || isLoadingLanguages}
+              disabled={isSubmitting || !isFormReady}
               placeholder="Select source language"
             />
 
@@ -538,17 +611,17 @@ export function TranslatePage() {
             <button
               type="button"
               onClick={handleSwapLanguages}
-              disabled={isSubmitting || isLoadingLanguages}
+              disabled={isSubmitting || !isFormReady}
               style={swapButtonStyles}
               aria-label="Swap source and target languages"
               title="Swap languages"
               onMouseEnter={(e) => {
-                e.currentTarget.style.backgroundColor = 'var(--hover-bg)';
-                e.currentTarget.style.color = 'var(--text-primary)';
+                e.currentTarget.style.backgroundColor = "var(--hover-bg)";
+                e.currentTarget.style.color = "var(--text-primary)";
               }}
               onMouseLeave={(e) => {
-                e.currentTarget.style.backgroundColor = 'var(--bg-secondary)';
-                e.currentTarget.style.color = 'var(--text-secondary)';
+                e.currentTarget.style.backgroundColor = "var(--bg-secondary)";
+                e.currentTarget.style.color = "var(--text-secondary)";
               }}
             >
               <svg
@@ -575,7 +648,7 @@ export function TranslatePage() {
               label="To"
               languages={languages}
               error={errors.targetLang}
-              disabled={isSubmitting || isLoadingLanguages}
+              disabled={isSubmitting || !isFormReady}
               placeholder="Select target language"
             />
           </div>
@@ -593,7 +666,7 @@ export function TranslatePage() {
             label="Source Text"
             placeholder="Enter text to translate..."
             error={errors.sourceText}
-            disabled={isSubmitting || isLoadingLanguages}
+            disabled={isSubmitting || !isFormReady}
             maxLength={10000}
             rows={6}
             required
@@ -607,10 +680,10 @@ export function TranslatePage() {
               disabled={isSubmitting || !formState.sourceText}
               style={clearButtonStyles}
               onMouseEnter={(e) => {
-                e.currentTarget.style.backgroundColor = 'var(--hover-bg)';
+                e.currentTarget.style.backgroundColor = "var(--hover-bg)";
               }}
               onMouseLeave={(e) => {
-                e.currentTarget.style.backgroundColor = 'var(--bg-secondary)';
+                e.currentTarget.style.backgroundColor = "var(--bg-secondary)";
               }}
             >
               <svg
@@ -633,23 +706,25 @@ export function TranslatePage() {
             <button
               ref={submitButtonRef}
               type="submit"
-              disabled={isSubmitting}
+              disabled={isSubmitting || !isFormReady}
+              aria-disabled={isSubmitting || !isFormReady}
               style={submitButtonStyles}
               onMouseEnter={(e) => {
-                if (!isSubmitting) {
-                  e.currentTarget.style.backgroundColor = 'var(--accent-hover)';
+                if (!isSubmitting && isFormReady) {
+                  e.currentTarget.style.backgroundColor = "var(--accent-hover)";
                 }
               }}
               onMouseLeave={(e) => {
-                if (!isSubmitting) {
-                  e.currentTarget.style.backgroundColor = 'var(--accent-primary)';
+                if (!isSubmitting && isFormReady) {
+                  e.currentTarget.style.backgroundColor =
+                    "var(--accent-primary)";
                 }
               }}
             >
-              {isSubmitting ? (
+              {isSubmitting || !isFormReady ? (
                 <>
                   <div style={spinnerStyles} aria-hidden="true" />
-                  Translating...
+                  {!isFormReady ? "Initializing..." : "Translating..."}
                 </>
               ) : (
                 <>

@@ -7,15 +7,15 @@
  * @see https://github.com/ollama/ollama/blob/main/docs/api.md
  */
 
-import { env } from './env';
+import { env } from "./env";
 import type {
   OllamaClientConfig,
   OllamaGenerateRequest,
   OllamaGenerateResponse,
   OllamaStreamResponse,
   TranslationRequest,
-  TranslationResponse
-} from '../types/ollama';
+  TranslationResponse,
+} from "../types/ollama";
 
 /**
  * Default request timeout in milliseconds (60 seconds)
@@ -25,7 +25,7 @@ const DEFAULT_TIMEOUT_MS = 60000;
 /**
  * Default model for translations if not specified
  */
-const DEFAULT_MODEL = 'llama2';
+const DEFAULT_MODEL = "translategemma:latest";
 
 /**
  * Creates the Ollama client configuration from environment variables
@@ -35,7 +35,7 @@ function createClientConfig(): OllamaClientConfig {
   return {
     endpoint: env.ollamaApiEndpoint,
     authToken: env.ollamaAuthToken,
-    timeout: DEFAULT_TIMEOUT_MS
+    timeout: DEFAULT_TIMEOUT_MS,
   };
 }
 
@@ -47,13 +47,13 @@ function createClientConfig(): OllamaClientConfig {
  */
 function buildHeaders(config: OllamaClientConfig): Record<string, string> {
   const headers: Record<string, string> = {
-    'Content-Type': 'application/json',
-    'Accept': 'application/json'
+    "Content-Type": "application/json",
+    Accept: "application/json",
   };
 
   // Add Bearer token authentication if configured
   if (config.authToken) {
-    headers['Authorization'] = `Bearer ${config.authToken}`;
+    headers["Authorization"] = `Bearer ${config.authToken}`;
   }
 
   return headers;
@@ -69,7 +69,7 @@ function buildHeaders(config: OllamaClientConfig): Record<string, string> {
 export function buildTranslationPrompt(
   sourceText: string,
   sourceLang: string,
-  targetLang: string
+  targetLang: string,
 ): string {
   return `You are a professional translator. Translate the following text from ${sourceLang} to ${targetLang}.
 Only provide the translation, no explanations.
@@ -96,13 +96,13 @@ function createTimeoutSignal(timeoutMs: number): AbortSignal {
  */
 function buildErrorMessage(error: unknown, context: string): string {
   if (error instanceof Error) {
-    if (error.name === 'AbortError') {
+    if (error.name === "AbortError") {
       return `${context}: Request timed out after ${DEFAULT_TIMEOUT_MS}ms`;
     }
     return `${context}: ${error.message}`;
   }
 
-  if (typeof error === 'string') {
+  if (typeof error === "string") {
     return `${context}: ${error}`;
   }
 
@@ -120,20 +120,20 @@ function buildErrorMessage(error: unknown, context: string): string {
 async function postToOllama(
   endpoint: string,
   request: OllamaGenerateRequest,
-  config: OllamaClientConfig
+  config: OllamaClientConfig,
 ): Promise<OllamaGenerateResponse> {
   const url = `${endpoint}/api/generate`;
   const headers = buildHeaders(config);
 
   const response = await fetch(url, {
-    method: 'POST',
+    method: "POST",
     headers,
     body: JSON.stringify(request),
-    signal: createTimeoutSignal(config.timeout)
+    signal: createTimeoutSignal(config.timeout),
   });
 
   if (!response.ok) {
-    let errorDetails = '';
+    let errorDetails = "";
     try {
       const errorData = await response.json();
       errorDetails = errorData.error || response.statusText;
@@ -141,11 +141,11 @@ async function postToOllama(
       errorDetails = response.statusText;
     }
     throw new Error(
-      `Ollama API request failed with status ${response.status}: ${errorDetails}`
+      `Ollama API request failed with status ${response.status}: ${errorDetails}`,
     );
   }
 
-  const data = await response.json() as OllamaGenerateResponse;
+  const data = (await response.json()) as OllamaGenerateResponse;
   return data;
 }
 
@@ -161,7 +161,7 @@ async function postToOllama(
 async function* streamFromOllama(
   endpoint: string,
   request: OllamaGenerateRequest,
-  config: OllamaClientConfig
+  config: OllamaClientConfig,
 ): AsyncGenerator<OllamaStreamResponse> {
   const url = `${endpoint}/api/generate`;
   const headers = buildHeaders(config);
@@ -169,18 +169,18 @@ async function* streamFromOllama(
   // Enable streaming
   const streamRequest: OllamaGenerateRequest = {
     ...request,
-    stream: true
+    stream: true,
   };
 
   const response = await fetch(url, {
-    method: 'POST',
+    method: "POST",
     headers,
     body: JSON.stringify(streamRequest),
-    signal: createTimeoutSignal(config.timeout)
+    signal: createTimeoutSignal(config.timeout),
   });
 
   if (!response.ok) {
-    let errorDetails = '';
+    let errorDetails = "";
     try {
       const errorData = await response.json();
       errorDetails = errorData.error || response.statusText;
@@ -188,12 +188,14 @@ async function* streamFromOllama(
       errorDetails = response.statusText;
     }
     throw new Error(
-      `Ollama API request failed with status ${response.status}: ${errorDetails}`
+      `Ollama API request failed with status ${response.status}: ${errorDetails}`,
     );
   }
 
   if (!response.body) {
-    throw new Error('Ollama API returned no response body for streaming request');
+    throw new Error(
+      "Ollama API returned no response body for streaming request",
+    );
   }
 
   const reader = response.body.getReader();
@@ -210,14 +212,17 @@ async function* streamFromOllama(
       const chunk = decoder.decode(value, { stream: true });
 
       // Ollama streams newline-separated JSON
-      const lines = chunk.split('\n').filter(line => line.trim() !== '');
+      const lines = chunk.split("\n").filter((line) => line.trim() !== "");
 
       for (const line of lines) {
         try {
           const data = JSON.parse(line) as OllamaStreamResponse;
           yield data;
         } catch (parseError) {
-          console.warn('[OllamaClient] Failed to parse stream chunk:', parseError);
+          console.warn(
+            "[OllamaClient] Failed to parse stream chunk:",
+            parseError,
+          );
         }
       }
     }
@@ -243,7 +248,7 @@ async function* streamFromOllama(
 export async function generate(
   prompt: string,
   model: string = DEFAULT_MODEL,
-  systemPrompt?: string
+  systemPrompt?: string,
 ): Promise<string> {
   const config = createClientConfig();
 
@@ -251,20 +256,20 @@ export async function generate(
     model,
     prompt,
     system: systemPrompt,
-    stream: false
+    stream: false,
   };
 
   try {
-    console.log('[OllamaClient] Generating text with model:', model);
+    console.log("[OllamaClient] Generating text with model:", model);
 
     const response = await postToOllama(config.endpoint, request, config);
 
-    console.log('[OllamaClient] Generation complete');
+    console.log("[OllamaClient] Generation complete");
 
     return response.response;
   } catch (error) {
-    const errorMessage = buildErrorMessage(error, 'Text generation failed');
-    console.error('[OllamaClient]', errorMessage);
+    const errorMessage = buildErrorMessage(error, "Text generation failed");
+    console.error("[OllamaClient]", errorMessage);
     throw new Error(errorMessage);
   }
 }
@@ -286,27 +291,48 @@ export async function generate(
  * console.log(result.translatedText); // "¡Hola, mundo!"
  * ```
  */
-export async function translate(request: TranslationRequest): Promise<TranslationResponse> {
+export async function translate(
+  request: TranslationRequest,
+): Promise<TranslationResponse> {
   const config = createClientConfig();
-  const { text, sourceLang, targetLang, model = DEFAULT_MODEL, stream = false } = request;
+  const {
+    text,
+    sourceLang,
+    targetLang,
+    model = DEFAULT_MODEL,
+    stream = false,
+  } = request;
 
-  const translationPrompt = buildTranslationPrompt(text, sourceLang, targetLang);
+  const translationPrompt = buildTranslationPrompt(
+    text,
+    sourceLang,
+    targetLang,
+  );
 
   const ollamaRequest: OllamaGenerateRequest = {
     model,
     prompt: translationPrompt,
-    stream: stream
+    stream: stream,
   };
 
   try {
-    console.log('[OllamaClient] Translating from', sourceLang, 'to', targetLang);
+    console.log(
+      "[OllamaClient] Translating from",
+      sourceLang,
+      "to",
+      targetLang,
+    );
 
     if (stream) {
       // Handle streaming response
-      let translatedText = '';
+      let translatedText = "";
       let stats = undefined;
 
-      for await (const chunk of streamFromOllama(config.endpoint, ollamaRequest, config)) {
+      for await (const chunk of streamFromOllama(
+        config.endpoint,
+        ollamaRequest,
+        config,
+      )) {
         translatedText += chunk.response;
 
         // Capture stats from the final chunk
@@ -314,12 +340,12 @@ export async function translate(request: TranslationRequest): Promise<Translatio
           stats = {
             promptTokens: chunk.prompt_eval_count || 0,
             completionTokens: chunk.eval_count || 0,
-            totalDurationMs: chunk.total_duration || 0
+            totalDurationMs: chunk.total_duration || 0,
           };
         }
       }
 
-      console.log('[OllamaClient] Streaming translation complete');
+      console.log("[OllamaClient] Streaming translation complete");
 
       return {
         translatedText: translatedText.trim(),
@@ -327,19 +353,25 @@ export async function translate(request: TranslationRequest): Promise<Translatio
         targetLang,
         model,
         success: true,
-        stats
+        stats,
       };
     } else {
       // Handle non-streaming response
-      const response = await postToOllama(config.endpoint, ollamaRequest, config);
+      const response = await postToOllama(
+        config.endpoint,
+        ollamaRequest,
+        config,
+      );
 
-      console.log('[OllamaClient] Translation complete');
+      console.log("[OllamaClient] Translation complete");
 
-      const stats = response.done ? {
-        promptTokens: response.prompt_eval_count || 0,
-        completionTokens: response.eval_count || 0,
-        totalDurationMs: response.total_duration || 0
-      } : undefined;
+      const stats = response.done
+        ? {
+            promptTokens: response.prompt_eval_count || 0,
+            completionTokens: response.eval_count || 0,
+            totalDurationMs: response.total_duration || 0,
+          }
+        : undefined;
 
       return {
         translatedText: response.response.trim(),
@@ -347,20 +379,20 @@ export async function translate(request: TranslationRequest): Promise<Translatio
         targetLang,
         model,
         success: true,
-        stats
+        stats,
       };
     }
   } catch (error) {
-    const errorMessage = buildErrorMessage(error, 'Translation failed');
-    console.error('[OllamaClient]', errorMessage);
+    const errorMessage = buildErrorMessage(error, "Translation failed");
+    console.error("[OllamaClient]", errorMessage);
 
     return {
-      translatedText: '',
+      translatedText: "",
       sourceLang,
       targetLang,
       model,
       success: false,
-      error: errorMessage
+      error: errorMessage,
     };
   }
 }
@@ -381,26 +413,31 @@ export async function translate(request: TranslationRequest): Promise<Translatio
  * }
  * ```
  */
-export async function testConnection(model: string = DEFAULT_MODEL): Promise<boolean> {
+export async function testConnection(
+  model: string = DEFAULT_MODEL,
+): Promise<boolean> {
   const config = createClientConfig();
 
   try {
-    console.log('[OllamaClient] Testing connection to Ollama API...');
+    console.log("[OllamaClient] Testing connection to Ollama API...");
 
     // Simple prompt to test connectivity
     const testRequest: OllamaGenerateRequest = {
       model,
-      prompt: '.',
-      stream: false
+      prompt: ".",
+      stream: false,
     };
 
     await postToOllama(config.endpoint, testRequest, config);
 
-    console.log('[OllamaClient] Connection test successful');
+    console.log("[OllamaClient] Connection test successful");
     return true;
   } catch (error) {
-    const errorMessage = buildErrorMessage(error, 'Ollama connection test failed');
-    console.error('[OllamaClient]', errorMessage);
+    const errorMessage = buildErrorMessage(
+      error,
+      "Ollama connection test failed",
+    );
+    console.error("[OllamaClient]", errorMessage);
     throw new Error(errorMessage);
   }
 }
