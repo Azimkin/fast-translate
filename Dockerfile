@@ -9,10 +9,10 @@ FROM oven/bun:1 AS deps
 WORKDIR /app
 
 # Copy package files
-COPY package.json bun.lock ./
+COPY package.json ./
 
 # Install dependencies
-RUN bun install --frozen-lockfile --production=false
+RUN bun install --production=false
 
 # ============================================
 # Stage 2: Build
@@ -45,7 +45,7 @@ ENV NODE_ENV=production
 COPY package.json ./
 
 # Install only production dependencies
-RUN bun install --frozen-lockfile --production
+RUN bun install --production
 
 # Copy built application from build stage
 COPY --from=build /app/dist ./dist
