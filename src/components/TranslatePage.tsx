@@ -25,6 +25,7 @@ import { TranslationResult } from "./TranslationResult";
 import { NotificationContainer } from "./NotificationContainer";
 import { showSuccess, showError } from "../lib/notification-store";
 import { getLanguages } from "../lib/languages";
+import { getRecentLanguages, saveRecentLanguages, isLanguageAvailable } from "../lib/storage";
 import type { Language } from "../types/language";
 import type {
   TranslateSuccessResponse,
@@ -114,20 +115,29 @@ export function TranslatePage() {
         const langs = await getLanguages();
         setLanguages(langs);
 
-        // Set default languages if available
-        if (langs.length > 0) {
-          const defaultSource = langs.find((l) => l.code === "en") || langs[0];
-          const defaultTarget =
-            langs.find((l) => l.code === "es") ||
-            langs.find((l) => l.code !== defaultSource.code) ||
-            langs[1] ||
-            langs[0];
-
-          setFormState((prev) => ({
-            ...prev,
-            sourceLang: defaultSource.code,
-            targetLang: defaultTarget.code,
-          }));
+        // Try to load recent languages from localStorage first
+        const recentLangs = getRecentLanguages();
+        
+        if (recentLangs && langs.length > 0) {
+          // Validate that saved languages are still available
+          const sourceValid = isLanguageAvailable(recentLangs.sourceLang, langs);
+          const targetValid = isLanguageAvailable(recentLangs.targetLang, langs);
+          
+          if (sourceValid && targetValid && recentLangs.sourceLang !== recentLangs.targetLang) {
+            // Use saved languages
+            setFormState((prev) => ({
+              ...prev,
+              sourceLang: recentLangs.sourceLang,
+              targetLang: recentLangs.targetLang,
+            }));
+            console.log('[TranslatePage] Loaded recent languages:', recentLangs.sourceLang, '→', recentLangs.targetLang);
+          } else {
+            // Fall back to defaults if saved languages are invalid
+            setDefaultLanguages(langs);
+          }
+        } else if (langs.length > 0) {
+          // No saved languages, use defaults
+          setDefaultLanguages(langs);
         }
       } catch (error) {
         console.error("Failed to load languages:", error);
@@ -138,6 +148,24 @@ export function TranslatePage() {
     }
 
     loadLanguages();
+  }, []);
+
+  /**
+   * Set default languages (English -> Spanish)
+   */
+  const setDefaultLanguages = useCallback((langs: Language[]) => {
+    const defaultSource = langs.find((l) => l.code === "en") || langs[0];
+    const defaultTarget =
+      langs.find((l) => l.code === "es") ||
+      langs.find((l) => l.code !== defaultSource.code) ||
+      langs[1] ||
+      langs[0];
+
+    setFormState((prev) => ({
+      ...prev,
+      sourceLang: defaultSource.code,
+      targetLang: defaultTarget.code,
+    }));
   }, []);
 
   // Fetch CSRF token on mount
@@ -359,6 +387,10 @@ export function TranslatePage() {
           sourceLang: successData.data.sourceLang,
           targetLang: successData.data.targetLang,
         });
+
+        // Save recent languages to localStorage
+        saveRecentLanguages(formState.sourceLang, formState.targetLang);
+        console.log('[TranslatePage] Saved recent languages:', formState.sourceLang, '→', formState.targetLang);
 
         showSuccess(
           "Translation complete",
