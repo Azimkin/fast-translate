@@ -132,8 +132,12 @@ export interface OllamaErrorResponse {
 export interface OllamaClientConfig {
   /** API endpoint URL */
   endpoint: string;
-  /** Optional authentication token */
+  /** Optional authentication token (Bearer auth) */
   authToken: string | null;
+  /** Optional username for Basic Auth */
+  username: string | null;
+  /** Optional password for Basic Auth */
+  password: string | null;
   /** Request timeout in milliseconds (default: 60000) */
   timeout: number;
 }

@@ -29,19 +29,22 @@ const DEFAULT_MODEL = "translategemma:latest";
 
 /**
  * Creates the Ollama client configuration from environment variables
- * @returns OllamaClientConfig with endpoint and optional auth token
+ * @returns OllamaClientConfig with endpoint and optional auth credentials
  */
 function createClientConfig(): OllamaClientConfig {
   return {
     endpoint: env.ollamaApiEndpoint,
     authToken: env.ollamaAuthToken,
+    username: env.ollamaUsername,
+    password: env.ollamaPassword,
     timeout: DEFAULT_TIMEOUT_MS,
   };
 }
 
 /**
  * Builds the request headers for Ollama API calls
- * Includes Bearer token authentication when configured
+ * Supports both Bearer token and Basic authentication
+ * Priority: Basic Auth (if username+password) > Bearer Token > No Auth
  * @param config - Client configuration
  * @returns Headers object for fetch requests
  */
@@ -51,8 +54,14 @@ function buildHeaders(config: OllamaClientConfig): Record<string, string> {
     Accept: "application/json",
   };
 
-  // Add Bearer token authentication if configured
-  if (config.authToken) {
+  // Priority: Basic Auth > Bearer Token > No Auth
+  if (config.username && config.password) {
+    // Use Basic Authentication
+    const credentials = `${config.username}:${config.password}`;
+    const encodedCredentials = btoa(credentials);
+    headers["Authorization"] = `Basic ${encodedCredentials}`;
+  } else if (config.authToken) {
+    // Use Bearer Token Authentication
     headers["Authorization"] = `Bearer ${config.authToken}`;
   }
 

@@ -8,8 +8,12 @@
 interface EnvConfig {
   /** Ollama API endpoint - required, must be non-empty */
   ollamaApiEndpoint: string;
-  /** Ollama auth token - optional, can be empty string */
+  /** Ollama auth token - optional, can be empty string (Bearer auth) */
   ollamaAuthToken: string | null;
+  /** Ollama username - optional, for Basic Auth */
+  ollamaUsername: string | null;
+  /** Ollama password - optional, for Basic Auth */
+  ollamaPassword: string | null;
 }
 
 /**
@@ -67,16 +71,61 @@ function validateOllamaAuthToken(): string | null {
 }
 
 /**
+ * Validates the OLLAMA_USERNAME environment variable if provided
+ * Returns null silently if not set
+ */
+function validateOllamaUsername(): string | null {
+  const username = process.env.OLLAMA_USERNAME;
+
+  if (!username) {
+    return null;
+  }
+
+  const trimmedUsername = username.trim();
+
+  if (trimmedUsername === '') {
+    if (skipValidation) {
+      return null;
+    }
+    throw new Error(
+      'Environment validation failed: OLLAMA_USERNAME is set but empty. ' +
+      'Please either provide a valid username or remove the variable from your .env file.'
+    );
+  }
+
+  return trimmedUsername;
+}
+
+/**
+ * Validates the OLLAMA_PASSWORD environment variable if provided
+ * Returns null silently if not set
+ */
+function validateOllamaPassword(): string | null {
+  const password = process.env.OLLAMA_PASSWORD;
+
+  // Password is optional - return null if not set
+  if (!password) {
+    return null;
+  }
+
+  return password; // Don't trim password (might have intentional spaces)
+}
+
+/**
  * Validates all environment variables and returns typed config
  * @throws {Error} If any required environment variable is missing or invalid
  */
 export function validateEnv(): EnvConfig {
   const ollamaApiEndpoint = validateOllamaApiEndpoint();
   const ollamaAuthToken = validateOllamaAuthToken();
+  const ollamaUsername = validateOllamaUsername();
+  const ollamaPassword = validateOllamaPassword();
 
   return {
     ollamaApiEndpoint,
-    ollamaAuthToken
+    ollamaAuthToken,
+    ollamaUsername,
+    ollamaPassword
   };
 }
 
@@ -88,9 +137,11 @@ export const env = validateEnv();
 
 /**
  * Log environment configuration at startup (for debugging)
- * AUTH_TOKEN is masked for security
+ * AUTH_TOKEN and PASSWORD are masked for security
  */
 console.log('[env] Configuration loaded:');
 console.log('[env]   OLLAMA_API_ENDPOINT:', env.ollamaApiEndpoint);
 console.log('[env]   OLLAMA_AUTH_TOKEN:', env.ollamaAuthToken ? '***' + env.ollamaAuthToken.slice(-4) : '(not set)');
+console.log('[env]   OLLAMA_USERNAME:', env.ollamaUsername || '(not set)');
+console.log('[env]   OLLAMA_PASSWORD:', env.ollamaPassword ? '***' + env.ollamaPassword.slice(-4) : '(not set)');
 console.log('[env]   SKIP_ENV_VALIDATION:', skipValidation ? 'true' : 'false');
